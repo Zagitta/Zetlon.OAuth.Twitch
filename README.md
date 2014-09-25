@@ -1,4 +1,4 @@
-A simple OAuth2 client/provider for ASP.NET websites 
+A simple Twitch OAuth2 client/provider for ASP.NET websites 
 ==================
 
 No guarantees are made about the functionality of this software.
