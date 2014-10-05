@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
+using System.Web;
 using DotNetOpenAuth.AspNet.Clients;
+using DotNetOpenAuth.Messaging;
 using Newtonsoft.Json.Linq;
 
 namespace Zetlon.OAuth.Twitch
@@ -48,16 +50,20 @@ namespace Zetlon.OAuth.Twitch
         public TwitchClient(string clientId, string clientSecret, params string[] scopes)
             : this(clientId, clientSecret, (IEnumerable<string>) scopes){ }
 
+        
         protected override Uri GetServiceLoginUrl(Uri returnUrl)
         {
-            var b = new StringBuilder();
+            var builder = new UriBuilder(Enduserauthlink);
 
-            b.Append(Enduserauthlink);
-            AppendDefaults(b, returnUrl);
-            b.Append("&scope=");
-            b.Append(_scopes);
-            
-            return new Uri(b.ToString());
+            builder.AppendQueryArgument("client_id", _clientId);
+
+            builder.AppendQueryArgument("state", returnUrl.Query);
+
+            builder.AppendQueryArgument("redirect_uri", returnUrl.GetLeftPart(UriPartial.Path));
+
+            builder.AppendQueryArgument("scope", _scopes);
+
+            return builder.Uri;
         }
 
         protected override string QueryAccessToken(Uri returnUrl, string authorizationCode)
@@ -139,17 +145,8 @@ namespace Zetlon.OAuth.Twitch
         {
             //user_read scope is required as a minimum for GetUserData
             var set = new HashSet<string>(scopes, StringComparer.OrdinalIgnoreCase) { "user_read" };
-            var b = new StringBuilder();
-
-            string prefix = "";
-            foreach (var scope in set)
-            {
-                b.Append(prefix);
-                b.Append(scope);
-                prefix = "+";
-            }
-
-            return b.ToString();
+            
+            return string.Join(" ", set);
         }
     }
 }
