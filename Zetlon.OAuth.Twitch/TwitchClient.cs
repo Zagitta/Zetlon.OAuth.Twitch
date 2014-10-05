@@ -23,7 +23,6 @@ namespace Zetlon.OAuth.Twitch
 
         private readonly string _clientId;
         private readonly string _clientSecret;
-        private readonly string _callbackUrl;
         private readonly string _scopes;
 
         /// <summary>
@@ -46,16 +45,14 @@ namespace Zetlon.OAuth.Twitch
         /// var returnUrl = helper.Action("ReturnUrl", "Account");
         /// OAuthWebSecurity.RegisterClient(new TwitchClient("ClientId", "ClientSecret", returnUrl, "channel_check_subscription"));
         /// </example>
-        public TwitchClient(string clientId, string clientSecret, string callbackUrl, IEnumerable<string> scopes) : base("Twitch")
+        public TwitchClient(string clientId, string clientSecret, IEnumerable<string> scopes) : base("Twitch")
         {
             if (clientId == null) throw new ArgumentNullException("clientId");
             if (clientSecret == null) throw new ArgumentNullException("clientSecret");
-            if (callbackUrl == null) throw new ArgumentNullException("callbackUrl");
             if (scopes == null) throw new ArgumentNullException("scopes");
             
             _clientId = clientId;
             _clientSecret = clientSecret;
-            _callbackUrl = callbackUrl;
 
             //user_read scope is required as a minimum for GetUserData
             var set = new HashSet<string>(scopes, StringComparer.OrdinalIgnoreCase) { "user_read" };
@@ -67,10 +64,9 @@ namespace Zetlon.OAuth.Twitch
         /// </summary>
         /// <param name="clientId">The client id provided by Twitch.</param>
         /// <param name="clientSecret">The client secret provided by Twitch.</param>
-        /// <param name="callbackUrl">The exact callback url as specified on the application settings site on Twitch.</param>
         /// <param name="scopes">The scopes you want to request access to.</param>
-        public TwitchClient(string clientId, string clientSecret, string callbackUrl, params string[] scopes)
-            : this(clientId, clientSecret, callbackUrl, (IEnumerable<string>) scopes){ }
+        public TwitchClient(string clientId, string clientSecret, params string[] scopes)
+            : this(clientId, clientSecret, (IEnumerable<string>) scopes){ }
 
         
         protected override Uri GetServiceLoginUrl(Uri returnUrl)
@@ -78,9 +74,9 @@ namespace Zetlon.OAuth.Twitch
             var builder = new UriBuilder(Enduserauthlink);
 
             builder.AppendQueryArgument("client_id", _clientId);
+            builder.AppendQueryArgument("redirect_uri", returnUrl.GetLeftPart(UriPartial.Path));
             //Removes the '?' at the start of the query string so TwitchState.DecodeTwitchCallback doesn't have to deal with it
-            builder.AppendQueryArgument(StateVar, returnUrl.AbsoluteUri);
-            builder.AppendQueryArgument("redirect_uri", _callbackUrl);
+            builder.AppendQueryArgument(StateVar, returnUrl.Query.Substring(1));
             builder.AppendQueryArgument("scope", _scopes);
 
             return builder.Uri;
@@ -91,7 +87,7 @@ namespace Zetlon.OAuth.Twitch
             var b = new UriBuilder(TokenLink);
             b.AppendQueryArgument("client_id", _clientId);
             b.AppendQueryArgument("client_secret", _clientSecret);
-            b.AppendQueryArgument("redirect_uri", _callbackUrl);
+            b.AppendQueryArgument("redirect_uri", returnUrl.GetLeftPart(UriPartial.Path));
             b.AppendQueryArgument("code", authorizationCode);
 
             using (var client = new WebClient())
@@ -170,8 +166,13 @@ namespace Zetlon.OAuth.Twitch
 
             if (string.IsNullOrWhiteSpace(state) || request.Url == null)
                 return false;
+            
+            var b = new UriBuilder(request.Url.GetLeftPart(UriPartial.Path))
+            {
+                Query = Uri.UnescapeDataString(state)
+            };
 
-            redirectUrl = new Uri(state);
+            redirectUrl = b.Uri;
             
             return true;
         }
