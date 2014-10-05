@@ -50,7 +50,6 @@
   <ItemGroup>
     <Compile Include="TwitchClient.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TwitchState.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

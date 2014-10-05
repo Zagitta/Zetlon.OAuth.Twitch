@@ -22,6 +22,7 @@ namespace Zetlon.OAuth.Twitch
         private const string Enduserauthlink = ApiUrl + "oauth2/authorize?response_type=code";
         private const string TokenLink = ApiUrl + "oauth2/token?&grant_type=authorization_code";
         private const string UserUrl = ApiUrl + "user/";
+        private const string StateVar = "state";
 
         private readonly string _clientId;
         private readonly string _clientSecret;
@@ -57,7 +58,8 @@ namespace Zetlon.OAuth.Twitch
 
             builder.AppendQueryArgument("client_id", _clientId);
 
-            builder.AppendQueryArgument("state", returnUrl.Query);
+            //Removes the '?' at the start of the query string so TwitchState.DecodeTwitchCallback doesn't have to deal with it
+            builder.AppendQueryArgument("state", returnUrl.Query.Substring(1));
 
             builder.AppendQueryArgument("redirect_uri", returnUrl.GetLeftPart(UriPartial.Path));
 
@@ -69,7 +71,7 @@ namespace Zetlon.OAuth.Twitch
         protected override string QueryAccessToken(Uri returnUrl, string authorizationCode)
         {
             var b = new StringBuilder();
-
+            
             b.Append(TokenLink);
             AppendDefaults(b, returnUrl);
             b.AppendFormat("&client_secret={0}", _clientSecret);
@@ -147,6 +149,35 @@ namespace Zetlon.OAuth.Twitch
             var set = new HashSet<string>(scopes, StringComparer.OrdinalIgnoreCase) { "user_read" };
             
             return string.Join(" ", set);
+        }
+
+
+        /// <summary>
+        /// Converts the Twitch state parameter into a format understood by DotNetOpenAuth
+        /// </summary>
+        public static void DecodeCallback()
+        {
+            var context = HttpContext.Current;
+
+            if (context == null)
+                return;
+
+            var request = context.Request;
+
+            if(request == null)
+                return;
+
+            var state = request.QueryString[StateVar];
+
+            if (string.IsNullOrWhiteSpace(state) || request.Url == null)
+                return;
+
+            var b = new UriBuilder(request.Url.GetLeftPart(UriPartial.Path))
+            {
+                Query = Uri.UnescapeDataString(state)
+            };
+
+            context.Response.Redirect(b.ToString(), true);
         }
     }
 }
