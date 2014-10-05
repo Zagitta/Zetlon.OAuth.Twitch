@@ -56,7 +56,10 @@ namespace Zetlon.OAuth.Twitch
             _clientId = clientId;
             _clientSecret = clientSecret;
             _callbackUrl = callbackUrl;
-            _scopes = CreateScopeString(scopes);
+
+            //user_read scope is required as a minimum for GetUserData
+            var set = new HashSet<string>(scopes, StringComparer.OrdinalIgnoreCase) { "user_read" };
+            _scopes = string.Join(" ", set);
         }
 
         /// <summary>
@@ -76,7 +79,7 @@ namespace Zetlon.OAuth.Twitch
 
             builder.AppendQueryArgument("client_id", _clientId);
             //Removes the '?' at the start of the query string so TwitchState.DecodeTwitchCallback doesn't have to deal with it
-            builder.AppendQueryArgument("state", returnUrl.Query.Substring(1));
+            builder.AppendQueryArgument(StateVar, returnUrl.AbsoluteUri);
             builder.AppendQueryArgument("redirect_uri", _callbackUrl);
             builder.AppendQueryArgument("scope", _scopes);
 
@@ -146,18 +149,6 @@ namespace Zetlon.OAuth.Twitch
         }
 
         /// <summary>
-        /// Returns a scope string formatted acording to twitch rules, ex: "user_read+channel_check_subscription".
-        /// </summary>
-        private static string CreateScopeString(IEnumerable<string> scopes)
-        {
-            //user_read scope is required as a minimum for GetUserData
-            var set = new HashSet<string>(scopes, StringComparer.OrdinalIgnoreCase) { "user_read" };
-            
-            return string.Join(" ", set);
-        }
-
-
-        /// <summary>
         /// Converts the Twitch state parameter into a format understood by DotNetOpenAuth.
         /// </summary>
         /// <param name="redirectUrl">The uri to redirect to.</param>
@@ -180,13 +171,8 @@ namespace Zetlon.OAuth.Twitch
             if (string.IsNullOrWhiteSpace(state) || request.Url == null)
                 return false;
 
-            var b = new UriBuilder(request.Url.GetLeftPart(UriPartial.Path))
-            {
-                Query = Uri.UnescapeDataString(state)
-            };
-
-            redirectUrl = b.Uri;
-
+            redirectUrl = new Uri(state);
+            
             return true;
         }
     }
