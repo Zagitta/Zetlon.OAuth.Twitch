@@ -57,7 +57,7 @@ namespace Zetlon.OAuth.Twitch
 
             //user_read scope is required as a minimum for GetUserData
             var set = new HashSet<string>(scopes, StringComparer.OrdinalIgnoreCase) { "user_read" };
-            _scopes = string.Join("+", set);
+            _scopes = string.Join(" ", set);
         }
 
         /// <summary>
