@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Net;
 using System.Text;
 using System.Web;
@@ -85,17 +86,19 @@ namespace Zetlon.OAuth.Twitch
 
         protected override string QueryAccessToken(Uri returnUrl, string authorizationCode)
         {
-            var b = new UriBuilder(TokenLink);
-            b.AppendQueryArgument("client_id", _clientId);
-            b.AppendQueryArgument("client_secret", _clientSecret);
-            b.AppendQueryArgument("redirect_uri", returnUrl.GetLeftPart(UriPartial.Path));
-            b.AppendQueryArgument("code", authorizationCode);
-
             using (var client = new WebClient())
             {
                 SetHeaders(client);
 
-                var response = client.UploadString(b.Uri, "POST", "");
+                var data = client.UploadValues(TokenLink, new NameValueCollection()
+                {
+                    {"client_id", _clientId},
+                    {"client_secret", _clientSecret},
+                    {"redirect_uri", returnUrl.GetLeftPart(UriPartial.Path)},
+                    {"code", authorizationCode}
+                });
+
+                var response = Encoding.UTF8.GetString(data);
 
                 var json = JObject.Parse(response);
 
@@ -107,7 +110,7 @@ namespace Zetlon.OAuth.Twitch
         {
             using (var client = new WebClient())
             {
-                SetHeaders(client);
+                SetHeaders(client, accessToken);
 
                 var response = client.UploadString(UserUrl, "POST", "");
 
