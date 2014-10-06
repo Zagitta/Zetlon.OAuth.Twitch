@@ -19,6 +19,7 @@ namespace Zetlon.OAuth.Twitch
         private const string Enduserauthlink = ApiUrl + "oauth2/authorize?response_type=code";
         private const string TokenLink = ApiUrl + "oauth2/token?&grant_type=authorization_code";
         private const string UserUrl = ApiUrl + "user/";
+        private const string CodeVar = "code";
         private const string StateVar = "state";
 
         private readonly string _clientId;
@@ -56,7 +57,7 @@ namespace Zetlon.OAuth.Twitch
 
             //user_read scope is required as a minimum for GetUserData
             var set = new HashSet<string>(scopes, StringComparer.OrdinalIgnoreCase) { "user_read" };
-            _scopes = string.Join(" ", set);
+            _scopes = string.Join("+", set);
         }
 
         /// <summary>
@@ -158,13 +159,11 @@ namespace Zetlon.OAuth.Twitch
                 return false;
 
             var request = context.Request;
-
-            if(request == null)
-                return false;
-
+            
             var state = request.QueryString[StateVar];
+            var code = request.QueryString[CodeVar];
 
-            if (string.IsNullOrWhiteSpace(state) || request.Url == null)
+            if (string.IsNullOrWhiteSpace(state) || string.IsNullOrWhiteSpace(code))
                 return false;
             
             var b = new UriBuilder(request.Url.GetLeftPart(UriPartial.Path))
@@ -172,9 +171,12 @@ namespace Zetlon.OAuth.Twitch
                 Query = Uri.UnescapeDataString(state)
             };
 
+            b.AppendQueryArgument(CodeVar, code);
+            
             redirectUrl = b.Uri;
             
             return true;
         }
+
     }
 }
