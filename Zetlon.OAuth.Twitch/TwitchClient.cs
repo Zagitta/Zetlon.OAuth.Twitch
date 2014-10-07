@@ -112,7 +112,7 @@ namespace Zetlon.OAuth.Twitch
             {
                 SetHeaders(client, accessToken);
 
-                var response = client.UploadString(UserUrl, "POST", "");
+                var response = client.DownloadString(UserUrl);
 
                 var json = JObject.Parse(response);
 
